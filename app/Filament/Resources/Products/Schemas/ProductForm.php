@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -13,37 +14,52 @@ class ProductForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->label("الاسم")
-                    ->required(),
-                Select::make('category_id')
-                    ->relationShip("category", "name")
-                    ->label("التصنيف")
-                    ->searchable()
-                    ->preload() 
-                    ->required(),
-                Select::make('unit')
-                    ->label("النوع")
-
-                    ->options(['piece' => 'Piece', 'meter' => 'Meter'])
-                    ->required(),
-                TextInput::make('stock')
                     ->required()
-                    ->label("المخزون")
-
-                    ->numeric()
-                    ->default(0.0),
+                    ->label('اسم المنتج'),
+                Select::make('type')
+                    ->options([
+                        'ستائر'  => 'ستائر',
+                        'شيفون'  => 'شيفون',
+                        'حلق'  => 'حلق',
+                        'أبواب اكورديون'  => 'أبواب اكورديون'
+                    ])
+                    ->required()
+                    ->label('النوع'),
                 TextInput::make('cost_price')
                     ->required()
-                    ->label("سعر التكلفة")
-
                     ->numeric()
-                    ->prefix('ILS'),
-                TextInput::make('selling_price')
+                    ->default(0.0)
+                    ->prefix('ILS')
+                    ->label('سعر التكلفة'),
+                TextInput::make('sell_price')
+                    ->numeric()
+                    ->default(0.0)
+                    ->prefix('ILS')
+                    ->label('سعر البيع'),
+                TextInput::make('stock')
                     ->required()
-                    ->label("سعر البيع")
-
                     ->numeric()
-                    ->prefix('ILS'),
+                    ->default(0.0)
+                    ->label('المخزون الإجمالي'),
+
+                // إضافة Repeater للألوان
+                // Repeater::make('productColor')
+                //     ->relationship('ProductColor')
+                //     ->label('ألوان المنتج')
+                //     ->schema([
+                //         TextInput::make('color')
+                //             ->label('اللون')
+                //             ->required(),
+
+                //         TextInput::make('stock')
+                //             ->label('المخزون')
+                //             ->numeric()
+                //             ->required()
+                //             ->default(0),
+                //     ])
+                //     ->columns(2)
+                //     ->collapsible()
+                //     ->itemLabel(fn (array $state): ?string => $state['color'] ?? null),
             ]);
     }
 }

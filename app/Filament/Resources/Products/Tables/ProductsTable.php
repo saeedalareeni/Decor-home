@@ -8,7 +8,6 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -20,46 +19,28 @@ class ProductsTable
         return $table
             ->columns([
                 TextColumn::make('name')
-                    ->label("الاسم")
                     ->searchable(),
-                TextColumn::make('category.name')
-                    ->label("التصنيف")
+                TextColumn::make('type')
+                    ->searchable(),
+                TextColumn::make('cost_price')
+                    ->money("ILS")
                     ->sortable(),
-
-                TextColumn::make('unit')
-                    ->label("الوحدة")
-                    ->badge(),
-
+                TextColumn::make('sell_price')
+                    ->money("ILS")
+                    ->sortable(),
+                    
                 TextColumn::make('stock')
-                    ->label("الكمية")
                     ->numeric()
                     ->sortable(),
-
-                TextColumn::make('cost_price')
-                    ->label("سعر التكلفة")
-                    ->money("ILS")
-                    ->sortable(),
-
-                TextColumn::make('selling_price')
-                    ->label("سعر البيع")
-                    ->money("ILS")
-                    ->sortable(),
-
                 TextColumn::make('deleted_at')
-                    ->label("تاريخ الحذف")
-
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('created_at')
                     ->dateTime()
-                    ->label("تاريخ الانشاء")
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-
                 TextColumn::make('updated_at')
-                    ->label("تاريخ التحديث")
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -68,7 +49,6 @@ class ProductsTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
             ])

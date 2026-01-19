@@ -10,11 +10,10 @@ class Sale extends Model
     use SoftDeletes;
     protected $fillable = [
         'customer_id',
-        'invoice_number',
-        'total_amount',
-        'discount',
-        'net_amount',
-        'payment_method',
+        'total_price',
+        'total_cost',
+        'profit',
+        'notes'
     ];
 
     public function customer()

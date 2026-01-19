@@ -10,42 +10,55 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\DissociateAction;
 use Filament\Actions\DissociateBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
 use Filament\Forms\Components\TextInput;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
 class ProductColorRelationManager extends RelationManager
 {
-    protected static string $relationship = 'ProductColor';
+    protected static string $relationship = 'colors';
+    protected static ?string $pluralLabel = 'اللون المنتج';
+    protected static ?string $modelLabel = 'لون المنتج';
 
-    protected static ?string $modelLabel = "الوان المنتج";
-    protected static ?string $pluralLabel = "الوان المنتج";
-    
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                TextInput::make('color')->label("اللون")
+                TextInput::make('color')
+                    ->label('اللون')
+                    ->required(),
+                
+                TextInput::make('stock')
+                    ->label('المخزون')
                     ->required()
-                    ->maxLength(255),
-                TextInput::make('stock')->label("الكمية")
-                    ->required()
-                    ->numeric(),
+                    ->numeric()
+                    ->default(0.0),
             ]);
     }
 
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('productColor')
+            ->recordTitleAttribute('منتج لون')
             ->columns([
-                TextColumn::make('color')->label("اللون"),
-                TextColumn::make('stock')->label("الكمية"),
+                TextColumn::make('color')
+                    ->label('اللون')
+                    ->searchable(),
+                TextColumn::make('stock')
+                    ->label('المخزون')
+                    ->numeric()
+                    ->sortable(),
+
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //

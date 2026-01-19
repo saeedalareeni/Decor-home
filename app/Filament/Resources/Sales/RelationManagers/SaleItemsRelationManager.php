@@ -14,6 +14,7 @@ use Filament\Actions\DissociateBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
@@ -44,123 +45,115 @@ class SaleItemsRelationManager extends RelationManager
     public function form(Schema $schema): Schema
     {
 
-        $recalculate = function (callable $set, callable $get) {
-
-            $quantity   = (float) $get('quantity');
-            $unitPrice  = (float) $get('unit_price');
-
-            $fabric = (float) $get('fabric_cost');
-            $ring   = (float) $get('ring_cost');
-            $tailor = (float) $get('tailor_cost');
-            $extra  = (float) $get('extra_cost');
-
-            $productCost = (float) optional(
-                \App\Models\Product::find($get('product_id'))
-            )->cost_price;
-
-            $totalPrice = $quantity * $unitPrice;
-            $extraCost  = $fabric + $ring + $tailor + $extra;
-
-            $netProfit = $totalPrice - ($quantity * $productCost) - $extraCost;
-
-            $set('total_price', round($totalPrice, 2));
-            $set('net_profit', round($netProfit, 2));
-        };
-
-
         return $schema
             ->components([
+                Select::make('item_type')
+                    ->label('نوع العنصر')
+                    ->options([
+                        'ستارة' => 'ستارة',
+                        'منتج عادي' => 'منتج عادي',
+                    ])
+                    ->reactive()
+                    ->afterStateUpdated(function ($set, $state) {
+                        if ($state === 'curtain') {
+                            $set('product_id', null);
+                            $set('product_color_id', null);
+                            $set('quantity', 0);
+                        }
+                    }),
+
                 Select::make('product_id')
-                    ->relationship('product', 'name')
+                    ->label('المنتج')
+                    ->options(Product::pluck('name', 'id'))
                     ->searchable()
                     ->preload()
-                    ->label("المنتج")
-                    ->required()
                     ->reactive()
-                    ->afterStateUpdated(function ($state, $set, $get) use ($recalculate) {
-                        $price = Product::find($state)?->selling_price ?? 0;
-                        $set('unit_price', $price);
-                        $recalculate($set, $get);
-                    }),
+                    ->afterStateUpdated(fn($set) => $set('product_color_id', null))
+                    ->visible(fn($get) => $get('item_type') === 'منتج عادي'),
 
                 Select::make('product_color_id')
-                    ->label("لون المنتج")
+                    ->label('لون المنتج')
                     ->searchable()
+                    ->preload()
                     ->options(
                         fn($get) =>
-                        productColor::where('product_id', $get('product_id'))
+                        $get('product_id')
+                            ? \App\Models\ProductColor::where('product_id', $get('product_id'))
                             ->pluck('color', 'id')
+                            : []
                     )
-                    ->preload()
-                    ->reactive()
-                    ->required(),
+                    ->visible(
+                        fn($get) =>
+                        $get('product_id') &&
+                            \App\Models\ProductColor::where('product_id', $get('product_id'))->exists()
+                            && $get('item_type') === 'منتج عادي'
+                    )
+                    ->reactive(),
 
                 TextInput::make('quantity')
-                    ->label("الكمية")
-
+                    ->label('الكمية')
                     ->numeric()
-                    ->required()
-                    ->reactive()
-                    ->afterStateUpdated(
-                        fn($state, $set, $get)
-                        => $recalculate($set, $get)
-                    )->rule(function ($get) {
-                        return function ($attribute, $value, $fail) use ($get) {
-                            $color = ProductColor::find($get('product_color_id'));
-                            if ($color && $value > $color->stock) {
-                                $fail('الكمية المطلوبة أكبر من المخزون المتوفر');
-                            }
-                        };
-                    }),
+                    ->default(1)
+                    ->visible(fn($get) => $get('item_type') === 'منتج عادي'),
 
-                TextInput::make("ring_cost")
-                    ->label("تكلفة الحلق")
+                TextInput::make('sell_price')
+                    ->label('سعر البيع للزبون')
+                    ->numeric(),
+
+
+                TextInput::make('sewing_cost')
+                    ->label('تكلفة الخياطة')
                     ->numeric()
-                    ->prefix("ILS")
                     ->default(0)
-                    ->reactive()
-                    ->afterStateUpdated(
-                        fn($state, $set, $get) => $recalculate($set, $get)
-                    ),
-
-                TextInput::make('tailor_cost')
-                    ->label("تكلفة الخياطة")
-                    ->numeric()
-                    ->prefix("ILS")
-                    ->default(0)
-                    ->reactive()
-                    ->afterStateUpdated(
-                        fn($state, $set, $get)
-                        => $recalculate($set, $get)
-                    ),
+                    ->visible(fn($get) => $get('item_type') === 'ستارة'),
 
                 TextInput::make('extra_cost')
-                    ->label("تكاليف اضافية")
+                    ->label('تكاليف إضافية')
                     ->numeric()
-                    ->prefix("ILS")
                     ->default(0)
-                    ->reactive()
-                    ->afterStateUpdated(
-                        fn($state, $set, $get)
-                        => $recalculate($set, $get)
-                    ),
+                    ->visible(fn($get) => $get('item_type') === 'ستارة'),
 
-                TextInput::make('unit_price')
-                    ->label("سعر القطعه - ( متر )")
-                    ->numeric()
-                    ->prefix("ILS"),
+                // هنا يظهر تفاصيل الستارة (CurtainCosts)
+                Repeater::make('curtainCosts')
+                    ->relationship('curtainCosts')
+                    ->label('تفاصيل الستارة (حديد/شيفون/حلق...)')
+                    ->visible(fn($get) => $get('item_type') === 'ستارة')
+                    ->schema([
+                        Select::make('product_id')
+                            ->label('المكون')
+                            ->options(
+                                Product::whereIn('type', ['ستائر', 'شيفون', 'بطانة', 'حلق', 'حديد'])
+                                    ->pluck('name', 'id')
+                            )
+                            ->reactive()
+                            ->afterStateUpdated(fn($set) => $set('product_color_id', null))
+                            ->required(),
 
-                TextInput::make('total_price')
-                    ->label("السعر الكلي")
-                    ->numeric()
-                    ->prefix("ILS")
-                    ->readOnly(),
+                        Select::make('product_color_id')
+                            ->label('اللون')
+                            ->options(
+                                fn($get) =>
+                                $get('product_id')
+                                    ? \App\Models\ProductColor::where('product_id', $get('product_id'))
+                                    ->pluck('color', 'id')
+                                    : []
+                            )
+                            ->reactive()
+                            ->required(),
 
-                TextInput::make('net_profit')
-                    ->label("صافي الربح")
-                    ->numeric()
-                    ->prefix("ILS")
-                    ->readOnly(),
+                        TextInput::make('quantity')
+                            ->label('الكمية')
+                            ->numeric()
+                            ->required(),
+                    ]),
+
+                TextInput::make('total_cost')
+                    ->label('التكلفة')
+                    ->disabled(),
+
+                TextInput::make('profit')
+                    ->label('الربح')
+                    ->disabled(),
             ]);
     }
 
@@ -179,21 +172,14 @@ class SaleItemsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('items')
             ->columns([
+                TextColumn::make('id')->label('ID'),
+                TextColumn::make('item_type')->label('نوع العنصر')->badge(),
                 TextColumn::make('product.name')->label('المنتج'),
                 TextColumn::make('quantity')->label('الكمية'),
-                TextColumn::make('unit_price')->label('سعر القطعة')->money('ILS', locale: "en"),
-                TextColumn::make('total_price')->label('السعر الكلي')->money('ILS', locale: "en")
-                    ->summarize(
-                        Sum::make()
-                            ->label('إجمالي السعر الكلي')
-                            ->money('ILS', locale: "en")
-                    ),
-                TextColumn::make('net_profit')->label('صافي الربح')->money('ILS', locale: "en")
-                    ->summarize(
-                        Sum::make()
-                            ->label('إجمالي صافي الربح')
-                            ->money('ILS', locale: "en")
-                    ),
+                TextColumn::make('sell_price')->label('سعر البيع'),
+                TextColumn::make('total_cost')->label('التكلفة'),
+                TextColumn::make('profit')->label('الربح'),
+
             ])
             ->filters([
                 Filter::make('this_month')

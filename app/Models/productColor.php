@@ -8,7 +8,8 @@ class productColor extends Model
 {
     protected $fillable = [
         "color",
-        "stock"
+        "stock",
+        "product_id"
     ];
 
     public function product()
@@ -18,32 +19,30 @@ class productColor extends Model
 
     protected static function booted()
     {
-        static::saving(function ($item) {
-            $count = ProductColor::where("product_id", $item->product_id)->get();
-            if (count($count) == 0) {
-                $item->product->stock = $item->stock;
-                $item->product->save();
-            } else {
-                $item->product->stock += $item->stock;
-                $item->product->save();
+        static::created(function ($item) {
+            if ($item->stock > 0 && $item->product) {
+                $item->product->increment('stock', $item->stock);
+            }
+        });
+
+        static::updated(function ($item) {
+            if ($item->wasChanged('stock') && $item->product) {
+                $old = (float) $item->getOriginal('stock');
+                $new = (float) $item->stock;
+                $diff = $new - $old;
+
+                if ($diff > 0) {
+                    $item->product->increment('stock', $diff); // كمية زائدة → زيادة المخزون
+                } else {
+                    $item->product->decrement('stock', abs($diff)); // كمية أقل → خصم المخزون
+                }
+
             }
         });
 
         static::deleting(function ($item) {
-            $item->product->decrement("stock", $item->stock);
-        });
-
-        static::updating(function ($item) {
-            if ($item->wasChanged('stock')) {
-                $old = $item->getOriginal('stock');
-                $new = $item->stock;
-                $diff = $new - $old;
-
-                if ($diff > 0) {
-                    $item->product->increment('stock', $diff);
-                } elseif ($diff < 0) {
-                    $item->product->decrement('stock', abs($diff));
-                }
+            if ($item->stock > 0 && $item->product) {
+                $item->product->decrement('stock', $item->stock);
             }
         });
     }

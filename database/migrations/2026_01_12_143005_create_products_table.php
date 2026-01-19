@@ -13,14 +13,12 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("category_id")->constrained();
-
-            $table->string("name");
-            $table->enum("unit", ["piece", "meter"]); // (piece | meter)
-
-            $table->decimal("stock", 10, 2)->default(0);
-            $table->decimal("cost_price", 10, 2);
-            $table->decimal("selling_price", 10, 2);
+            $table->string('name');
+            $table->string('type'); // قماش / حلق / اكسسوارات / باب
+            
+            $table->decimal('cost_price', 12, 2)->default(0);
+            $table->decimal('sell_price', 12, 2)->default(0);
+            $table->decimal('stock', 12, 2)->default(0);
 
             $table->softDeletes();
             $table->timestamps();

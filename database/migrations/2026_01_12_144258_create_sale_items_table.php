@@ -13,20 +13,16 @@ return new class extends Migration
     {
         Schema::create('sale_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId("sale_id")->constrained()->cascadeOnDelete();
-            $table->foreignId("product_id")->constrained()->cascadeOnDelete();
             $table->foreignId('product_color_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('sale_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->nullable()->constrained()->cascadeOnDelete();
 
-            $table->decimal('ring_cost', 10, 2)->default(0);   // تكلفة الحلق
-            $table->decimal('tailor_cost', 10, 2)->default(0); // تكلفة الخياط
-            $table->decimal('extra_cost', 10, 2)->default(0);  // أي تكلفة إضافية
+            $table->string("item_type"); // ستاره او بسيط
 
-            $table->decimal("quantity", 10, 2);
-            $table->decimal("unit_price", 10, 2);
-            $table->decimal("total_price", 10, 2);
-
-            $table->decimal("total_cost", 10, 2);
-            $table->decimal("net_profit", 10, 2);
+            $table->integer('quantity')->default(1);
+            $table->decimal('sell_price', 12, 2)->default(0);  // سعر البيع للزبون
+            $table->decimal('total_cost', 12, 2)->default(0);  // تكلفة هذا العنصر
+            $table->decimal('profit', 12, 2)->default(0);      // الربح
 
             $table->softDeletes();
             $table->timestamps();

@@ -11,17 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('sales', function (Blueprint $table) {
+        Schema::create('curtain_costs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
-
-            $table->date('sale_date')->default(now());
-            $table->decimal('total_price', 12, 2)->default(0);
-            $table->decimal('total_cost', 12, 2)->default(0);
-            $table->decimal('profit', 12, 2)->default(0);
+            $table->foreignId('sale_item_id')->constrained('sale_items')->onDelete('cascade');
+            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->foreignId('product_color_id')->constrained('product_colors')->onDelete('cascade');
             $table->integer('quantity')->default(1);
 
-            $table->softDeletes();
             $table->timestamps();
         });
     }
@@ -31,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sales');
+        Schema::dropIfExists('curtain_costs');
     }
 };

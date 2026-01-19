@@ -34,17 +34,19 @@ class ExpenseResource extends Resource
                 TextInput::make('title')
                     ->label("العنوان")
                     ->required(),
+                    
                 TextInput::make('amount')
                     ->label("المبلغ")
                     ->prefix('ILS')
                     ->required()
                     ->numeric(),
+
                 DatePicker::make('expense_date')
                     ->label("تاريخ الصرف")
                     ->required(),
+
                 Textarea::make('notes')
                     ->label("ملاحظات")
-
                     ->columnSpanFull(),
             ]);
     }

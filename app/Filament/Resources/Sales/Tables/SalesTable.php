@@ -21,36 +21,13 @@ class SalesTable
     {
         return $table
             ->columns([
-                TextColumn::make('customer.name')
-                    ->label("الزبون")
-
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('items_sum_total_price')
-                    ->label("السعر الكلي")
-                    ->numeric()
-                    ->sum('items', 'total_price')
-                    ->money("ILS", locale: "en")
-                    ->sortable()
-                    ->summarize(
-                        Sum::make()
-                            ->label("إجمالي السعر الكلي")
-                            ->money('ILS', locale: "en")
-                    ),
-
-                TextColumn::make('items_sum_net_profit')
-                    ->sum("items", "net_profit")
-                    ->money("ILS", locale: "en")
-                    ->label("صافي الربح")
-                    ->summarize(
-                        Sum::make()
-                            ->label('إجمالي صافي الربح')
-                            ->money('ILS', locale: "en")
-                    ),
-
-                TextColumn::make('payment_method')
-                    ->label("طريقة الدفع")
-                    ->badge(),
+                TextColumn::make('id')->label('ID'),
+                TextColumn::make('customer.name')->label('الزبون'),
+                TextColumn::make('sale_date')->label('التاريخ'),
+                TextColumn::make('total_price')->label('سعر البيع'),
+                TextColumn::make('total_cost')->label('التكلفة'),
+                TextColumn::make('profit')->label('الربح'),
+                
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

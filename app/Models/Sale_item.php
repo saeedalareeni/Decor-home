@@ -7,16 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class Sale_item extends Model
 {
     protected $fillable = [
+        'product_color_id',
         'sale_id',
         'product_id',
+        'item_type',
         'quantity',
-        'unit_price',
-        'total_price',
-        'ring_cost',
-        'tailor_cost',
-        'extra_cost',
+        'sell_price',
+        'total_cost',
+        'profit',
         'net_profit',
-        'product_color_id',
+        'sewing_cost',
+        'extra_cost'
     ];
 
     public function sale()
@@ -29,43 +30,18 @@ class Sale_item extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function productColor()
+    public function colors()
     {
         return $this->belongsTo(productColor::class);
     }
 
-    protected static function booted()
+    public function curtainCosts()
     {
-        static::saving(function ($item) {
-            $quantity  = (float) $item->quantity;
-            $unitPrice = (float) $item->unit_price;
+        return $this->hasMany(CurtainCost::class, 'sale_item_id');
+    }
 
-            $fabric = (float) $item->fabric_cost;
-            $ring   = (float) $item->ring_cost;
-            $tailor = (float) $item->tailor_cost;
-            $extra  = (float) $item->extra_cost;
-
-            $item->total_price = $quantity * $unitPrice;
-
-            $item->total_cost =
-                $fabric +
-                $ring +
-                $tailor +
-                $extra;
-
-            $item->net_profit = $item->total_price - (($quantity * $item->product->cost_price) + $item->total_cost);
-        });
-
-        static::created(function ($item) {
-
-            if ($item->product_color_id) {
-                // خصم من مخزون اللون
-                // dd($item->quantity);
-                $item->productColor->decrement('stock', $item->quantity);
-            } else {
-                // خصم من مخزون المنتج
-                $item->product->decrement('stock', $item->quantity);
-            }
-        });
+    public function components()
+    {
+        return $this->hasMany(CurtainCost::class);
     }
 }

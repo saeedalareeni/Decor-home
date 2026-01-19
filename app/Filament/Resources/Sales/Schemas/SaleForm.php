@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Sales\Schemas;
 
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 
@@ -13,17 +15,25 @@ class SaleForm
         return $schema
             ->components([
                 Select::make('customer_id')
-                    ->label("الزبون")
                     ->relationship('customer', 'name')
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->label('الزبون'),
 
-                Select::make('payment_method')
-                    ->label("طريقة الدفع")
+                DatePicker::make('sale_date')
+                    ->label('تاريخ البيع'),
 
-                    ->options(['cash' => 'كاش', 'card' => 'بطاقة صراف', 'transfer' => 'تحويل بنكي'])
-                    ->required(),
+                TextInput::make('total_price')
+                    ->label('إجمالي سعر البيع')
+                    ->disabled(),
+
+                TextInput::make('total_cost')
+                    ->label('إجمالي التكلفة')
+                    ->disabled(),
+
+                TextInput::make('profit')
+                    ->label('الربح')
+                    ->disabled(),
             ]);
     }
 }
