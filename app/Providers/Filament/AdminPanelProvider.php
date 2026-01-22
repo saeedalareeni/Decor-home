@@ -12,6 +12,7 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Css;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
@@ -30,7 +31,9 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('/')
-            ->brandName("Home Decore")
+            ->brandName("بيت الديكور للستائر والمفروشات")
+            ->brandLogo(asset('images/logo.jpeg'))
+            ->brandLogoHeight('120px')
             ->login()
             ->colors([
                 'primary' => Color::Amber,
@@ -40,11 +43,11 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
             ])
-            // ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                NetProfitAfterExpenses::class,
-                TotalExpenses::class,
-                SalesProfitChart::class,
+                // NetProfitAfterExpenses::class,
+                // TotalExpenses::class,
+                // SalesProfitChart::class,
                 // AccountWidget::class,
                 // FilamentInfoWidget::class,
             ])
@@ -61,6 +64,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+            ])->assets([
+                Css::make('admin', resource_path('css/filament/admin.css')),
             ]);
     }
 }

@@ -2,27 +2,52 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\SaleItem;
+use App\Models\Sale;
 use App\Models\Expense;
-use App\Models\Sale_item;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class NetProfitAfterExpenses extends StatsOverviewWidget
 {
-    protected int | string | array $columnSpan = 2;
+    protected int | string | array $columnSpan = 'md';
 
     protected function getStats(): array
     {
-        $salesProfit = Sale_item::sum('net_profit');
-        $expenses    = Expense::sum('amount');
+        // حساب إجمالي الربح من المبيعات
+        $salesProfit = Sale::sum('profit') ?? 0;
 
+        // حساب إجمالي المصروفات
+        $expenses = Expense::sum('amount') ?? 0;
+
+        // صافي الربح بعد المصروفات
         $netProfit = $salesProfit - $expenses;
 
         return [
-            Stat::make('صافي الربح بعد المصروفات', number_format($netProfit, 2) . ' ILS')
+            Stat::make('صافي الربح بعد المصروفات', $this->formatCurrency($netProfit))
+                ->description($this->getDescription($salesProfit, $expenses))
                 ->icon('heroicon-o-currency-dollar')
-                ->color($netProfit >= 0 ? 'success' : 'danger'),
+                ->color($netProfit >= 0 ? 'success' : 'danger')
+                ->extraAttributes([
+                    'class' => 'cursor-pointer',
+                ]),
         ];
     }
+
+    /**
+     * تنسيق العملة بشكل احترافي
+     */
+    protected function formatCurrency(float $amount): string
+    {
+        $formatted = number_format(abs($amount), 2, '.', ',');
+        $symbol = $amount < 0 ? '- ' : '';
+        return $symbol . $formatted . ' ILS';
+    }
+
+    /**
+     * وصف تفصيلي للربح
+     */
+    // protected function getDescription(float $sales, float $expenses): string
+    // {
+    //     return "الربح: " . $this->formatCurrency($sales) . " | المصروفات: " . $this->formatCurrency($expenses);
+    // }
 }

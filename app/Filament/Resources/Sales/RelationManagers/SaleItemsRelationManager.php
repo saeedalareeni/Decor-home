@@ -52,10 +52,10 @@ class SaleItemsRelationManager extends RelationManager
                     ->options([
                         'ستارة' => 'ستارة',
                         'منتج عادي' => 'منتج عادي',
-                    ])
+                    ])->required()
                     ->reactive()
                     ->afterStateUpdated(function ($set, $state) {
-                        if ($state === 'curtain') {
+                        if ($state === 'ستارة') {
                             $set('product_id', null);
                             $set('product_color_id', null);
                             $set('quantity', 0);
@@ -94,24 +94,25 @@ class SaleItemsRelationManager extends RelationManager
                     ->label('الكمية')
                     ->numeric()
                     ->default(1)
-                    ->visible(fn($get) => $get('item_type') === 'منتج عادي'),
+                    ->visible(fn($get) => $get('item_type') === 'منتج عادي')
+                    ->required(),
 
                 TextInput::make('sell_price')
                     ->label('سعر البيع للزبون')
-                    ->numeric(),
+                    ->numeric()->required(),
 
 
                 TextInput::make('sewing_cost')
                     ->label('تكلفة الخياطة')
                     ->numeric()
                     ->default(0)
-                    ->visible(fn($get) => $get('item_type') === 'ستارة'),
+                    ->visible(fn($get) => $get('item_type') === 'ستارة')->required(),
 
                 TextInput::make('extra_cost')
                     ->label('تكاليف إضافية')
                     ->numeric()
                     ->default(0)
-                    ->visible(fn($get) => $get('item_type') === 'ستارة'),
+                    ->visible(fn($get) => $get('item_type') === 'ستارة')->required(),
 
                 // هنا يظهر تفاصيل الستارة (CurtainCosts)
                 Repeater::make('curtainCosts')

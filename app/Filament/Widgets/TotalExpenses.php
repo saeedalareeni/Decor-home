@@ -8,16 +8,29 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class TotalExpenses extends StatsOverviewWidget
 {
-    protected int | string | array $columnSpan = 2;
+    protected int | string | array $columnSpan = 'md';
 
     protected function getStats(): array
     {
-        $totalExpenses = Expense::sum('amount');
+        $totalExpenses = Expense::sum('amount') ?? 0;
+        $expenseCount = Expense::count();
 
         return [
-            Stat::make('إجمالي المصروفات', number_format($totalExpenses, 2) . ' ILS')
+            Stat::make('إجمالي المصروفات', $this->formatCurrency($totalExpenses))
+                ->description("عدد المصروفات: " . $expenseCount)
                 ->icon('heroicon-o-arrow-trending-down')
-                ->color('danger'),
+                ->color('danger')
+                ->extraAttributes([
+                    'class' => 'cursor-pointer',
+                ]),
         ];
+    }
+
+    /**
+     * تنسيق العملة بشكل احترافي
+     */
+    protected function formatCurrency(float $amount): string
+    {
+        return number_format($amount, 2, '.', ',') . ' ILS';
     }
 }

@@ -16,7 +16,12 @@ return new class extends Migration
 
             $table->string('title');
             $table->decimal('amount', 10, 2);
-            $table->date('expense_date');
+            $table->date('date');
+
+            $table->foreignId('recurring_expense_id')
+                ->nullable()
+                ->constrained('recurring_expenses')
+                ->nullOnDelete();
 
             $table->text('notes')->nullable();
 
