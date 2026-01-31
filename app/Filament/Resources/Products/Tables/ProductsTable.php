@@ -22,13 +22,16 @@ class ProductsTable
                     ->searchable(),
                 TextColumn::make('type')
                     ->searchable(),
+                TextColumn::make('supplier_name')
+                    ->label('اسم المورد')
+                    ->searchable(),
                 TextColumn::make('cost_price')
                     ->money("ILS")
                     ->sortable(),
                 TextColumn::make('sell_price')
                     ->money("ILS")
                     ->sortable(),
-                    
+
                 TextColumn::make('stock')
                     ->numeric()
                     ->sortable(),

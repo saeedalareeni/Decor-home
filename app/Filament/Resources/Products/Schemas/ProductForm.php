@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\Schemas;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Hidden;
 use Filament\Schemas\Schema;
 
 class ProductForm
@@ -24,6 +25,7 @@ class ProductForm
                         'أبواب اكورديون'  => 'أبواب اكورديون'
                     ])
                     ->required()
+                    ->live()
                     ->label('النوع'),
                 TextInput::make('cost_price')
                     ->required()
@@ -41,6 +43,9 @@ class ProductForm
                     ->numeric()
                     ->default(0.0)
                     ->label('المخزون الإجمالي'),
+                TextInput::make('supplier_name')
+                    ->label('اسم المورد')
+                    ->placeholder('أدخل اسم المورد'),
 
                 // إضافة Repeater للألوان
                 // Repeater::make('productColor')

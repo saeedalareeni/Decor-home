@@ -15,10 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('type'); // قماش / حلق / اكسسوارات / باب
-            
+
             $table->decimal('cost_price', 12, 2)->default(0);
             $table->decimal('sell_price', 12, 2)->default(0);
             $table->decimal('stock', 12, 2)->default(0);
+            $table->string('supplier_name')->nullable()->comment('اسم المورد');
 
             $table->softDeletes();
             $table->timestamps();

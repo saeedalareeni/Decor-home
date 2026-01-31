@@ -14,6 +14,8 @@ class Product extends Model
         'stock',
         'cost_price',
         'selling_price',
+        'number_of_layers',
+        'supplier_name',
     ];
 
 
