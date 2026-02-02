@@ -10,12 +10,15 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 
 class ExpenseResource extends Resource
@@ -34,14 +37,14 @@ class ExpenseResource extends Resource
                 TextInput::make('title')
                     ->label("العنوان")
                     ->required(),
-                    
+
                 TextInput::make('amount')
                     ->label("المبلغ")
                     ->prefix('ILS')
                     ->required()
                     ->numeric(),
 
-                DatePicker::make('expense_date')
+                DatePicker::make('date')
                     ->label("تاريخ الصرف")
                     ->required(),
 
@@ -63,9 +66,13 @@ class ExpenseResource extends Resource
                     ->label("المبلغ")
                     ->numeric()
                     ->money("ILS", locale: "en")
-                    ->sortable(),
+                    ->sortable()->summarize(
+                        Sum::make()
+                            ->label('المجموع')
+                            ->money('ILS', locale: 'en')
+                    ),
 
-                TextColumn::make('expense_date')
+                TextColumn::make('date')
                     ->label("تاريخ الصرف")
                     ->date()
                     ->sortable(),
@@ -80,7 +87,44 @@ class ExpenseResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Filter::make('month_year')
+                    ->label('فلترة شهرية')
+                    ->form([
+                        Select::make('month')
+                            ->label('الشهر')
+                            ->options([
+                                '1'  => 'يناير',
+                                '2'  => 'فبراير',
+                                '3'  => 'مارس',
+                                '4'  => 'أبريل',
+                                '5'  => 'مايو',
+                                '6'  => 'يونيو',
+                                '7'  => 'يوليو',
+                                '8'  => 'أغسطس',
+                                '9'  => 'سبتمبر',
+                                '10' => 'أكتوبر',
+                                '11' => 'نوفمبر',
+                                '12' => 'ديسمبر',
+                            ]),
+                        Select::make('year')
+                            ->label('السنة')
+                            ->options(
+                                collect(range(now()->year, now()->year - 5))
+                                    ->mapWithKeys(fn($year) => [$year => $year])
+                                    ->toArray()
+                            ),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when(
+                                $data['month'],
+                                fn($q) => $q->whereMonth('created_at', $data['month'])
+                            )
+                            ->when(
+                                $data['year'],
+                                fn($q) => $q->whereYear('created_at', $data['year'])
+                            );
+                    }),
             ])
             ->recordActions([
                 EditAction::make(),
