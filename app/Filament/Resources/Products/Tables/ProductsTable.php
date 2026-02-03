@@ -19,20 +19,26 @@ class ProductsTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->label('اسم المنتج')
                     ->searchable(),
                 TextColumn::make('type')
+                    ->label('الصنف')
                     ->searchable(),
                 TextColumn::make('supplier_name')
                     ->label('اسم المورد')
                     ->searchable(),
                 TextColumn::make('cost_price')
+                    ->label('سعر التكلفة')
                     ->money("ILS")
                     ->sortable(),
                 TextColumn::make('sell_price')
                     ->money("ILS")
+                    ->label('سعر البيع')
                     ->sortable(),
 
                 TextColumn::make('stock')
+                    ->label('الكمية')
+
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('deleted_at')

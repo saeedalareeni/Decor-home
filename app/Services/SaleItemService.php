@@ -55,7 +55,7 @@ class SaleItemService
 
         $item->total_cost = (float) $product->cost_price * (float) $item->quantity;
         $salesPrice = (float) $item->sell_price * (float) $item->quantity;
-        $item->profit = $salesPrice - (float) $item->total_cost;
+        $item->profit = $salesPrice - (float) $item->total_cost - (float) $item->extra_cost;
         $item->net_profit = $item->profit;
         $item->saveQuietly();
     }

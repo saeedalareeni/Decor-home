@@ -12,6 +12,7 @@ class Sale extends Model
         'customer_id',
         'total_price',
         'total_cost',
+        'sale_date',
         'profit',
         'notes'
     ];

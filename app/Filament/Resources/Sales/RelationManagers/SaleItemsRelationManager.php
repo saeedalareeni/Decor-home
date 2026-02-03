@@ -92,7 +92,6 @@ class SaleItemsRelationManager extends RelationManager
 
                 TextInput::make('quantity')
                     ->label('الكمية')
-                    ->numeric()
                     ->default(1)
                     ->visible(fn($get) => $get('item_type') === 'منتج عادي')
                     ->required(),
@@ -112,7 +111,7 @@ class SaleItemsRelationManager extends RelationManager
                     ->label('تكاليف إضافية')
                     ->numeric()
                     ->default(0)
-                    ->visible(fn($get) => $get('item_type') === 'ستارة')->required(),
+                    ->required(),
 
                 // هنا يظهر تفاصيل الستارة (CurtainCosts)
                 Repeater::make('curtainCosts')
@@ -123,11 +122,12 @@ class SaleItemsRelationManager extends RelationManager
                         Select::make('product_id')
                             ->label('المكون')
                             ->options(
-                                Product::whereIn('type', ['ستائر', 'شيفون', 'بطانة', 'حلق', 'حديد'])
+                                Product::whereIn('type', ['ستائر', 'شيفون', 'بطانة', 'حلق', 'حديد', 'مفروشات'])
                                     ->pluck('name', 'id')
                             )
                             ->reactive()
                             ->afterStateUpdated(fn($set) => $set('product_color_id', null))
+                            ->searchable()
                             ->required(),
 
                         Select::make('product_color_id')
@@ -139,12 +139,10 @@ class SaleItemsRelationManager extends RelationManager
                                     ->pluck('color', 'id')
                                     : []
                             )
-                            ->reactive()
-                            ->required(),
+                            ->reactive(),
 
                         TextInput::make('quantity')
                             ->label('الكمية')
-                            ->numeric()
                             ->required(),
                     ]),
 

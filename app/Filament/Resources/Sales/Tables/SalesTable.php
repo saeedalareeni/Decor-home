@@ -24,10 +24,22 @@ class SalesTable
                 TextColumn::make('id')->label('ID'),
                 TextColumn::make('customer.name')->label('الزبون'),
                 TextColumn::make('sale_date')->label('التاريخ'),
-                TextColumn::make('total_price')->label('سعر البيع'),
-                TextColumn::make('total_cost')->label('التكلفة'),
-                TextColumn::make('profit')->label('الربح'),
-                
+                TextColumn::make('total_price')->label('سعر البيع')
+                ->summarize(
+                        Sum::make()
+                            ->label('المجموع')
+                            ->money('ILS', locale: 'en')),
+                TextColumn::make('total_cost')->label('التكلفة')
+                ->summarize(
+                        Sum::make()
+                            ->label('المجموع')
+                            ->money('ILS', locale: 'en')),
+                TextColumn::make('profit')->label('الربح')
+                ->summarize(
+                        Sum::make()
+                            ->label('المجموع')
+                            ->money('ILS', locale: 'en')),
+
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

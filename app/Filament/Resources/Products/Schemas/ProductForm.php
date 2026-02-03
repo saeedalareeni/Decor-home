@@ -18,15 +18,16 @@ class ProductForm
                     ->required()
                     ->label('اسم المنتج'),
                 Select::make('type')
+                    ->label('الصنف')
                     ->options([
                         'ستائر'  => 'ستائر',
                         'شيفون'  => 'شيفون',
                         'حلق'  => 'حلق',
-                        'أبواب اكورديون'  => 'أبواب اكورديون'
+                        'أبواب اكورديون'  => 'أبواب اكورديون',
+                        'مفروشات'  => 'مفروشات'
                     ])
                     ->required()
-                    ->live()
-                    ->label('النوع'),
+                    ->live(),
                 TextInput::make('cost_price')
                     ->required()
                     ->numeric()
@@ -34,10 +35,10 @@ class ProductForm
                     ->prefix('ILS')
                     ->label('سعر التكلفة'),
                 TextInput::make('sell_price')
+                    ->label('سعر البيع')
                     ->numeric()
                     ->default(0.0)
-                    ->prefix('ILS')
-                    ->label('سعر البيع'),
+                    ->prefix('ILS'),
                 TextInput::make('stock')
                     ->required()
                     ->numeric()
