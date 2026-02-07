@@ -22,7 +22,7 @@ class SalesTable
         return $table
             ->columns([
                 TextColumn::make('id')->label('ID'),
-                TextColumn::make('customer.name')->label('الزبون'),
+                TextColumn::make('customer.name')->label('الزبون')->searchable(),
                 TextColumn::make('sale_date')->label('التاريخ'),
                 TextColumn::make('total_price')->label('سعر البيع')
                 ->summarize(

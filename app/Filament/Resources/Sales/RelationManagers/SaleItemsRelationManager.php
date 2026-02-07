@@ -16,6 +16,7 @@ use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -112,6 +113,9 @@ class SaleItemsRelationManager extends RelationManager
                     ->numeric()
                     ->default(0)
                     ->required(),
+
+                Textarea::make('notes')
+                    ->label('ملاحظات'),
 
                 // هنا يظهر تفاصيل الستارة (CurtainCosts)
                 Repeater::make('curtainCosts')
