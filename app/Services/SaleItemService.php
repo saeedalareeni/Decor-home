@@ -43,7 +43,6 @@ class SaleItemService
     private function recalculateItem(Sale_item $item): void
     {
         if ($item->item_type === 'ستارة') {
-            // الستارة: التكلفة تُحسب من CurtainCosts + sewing + extra
             $this->curtainCostService->recalculateSaleItem($item);
             return;
         }
@@ -53,9 +52,15 @@ class SaleItemService
             return;
         }
 
-        $item->total_cost = (float) $product->cost_price * (float) $item->quantity;
-        $salesPrice = (float) $item->sell_price * (float) $item->quantity;
-        $item->profit = $salesPrice - (float) $item->total_cost - (float) $item->extra_cost;
+        $qty        = (float) $item->quantity;
+        $costPrice = (float) $product->cost_price;
+        $sellTotal = (float) $item->sell_price;
+        $extraCost = (float) $item->extra_cost;
+
+        $item->total_cost = $costPrice * $qty;
+
+        $item->profit = $sellTotal - ($item->total_cost + $extraCost);
+
         $item->net_profit = $item->profit;
         $item->saveQuietly();
     }
@@ -194,13 +199,10 @@ class SaleItemService
 
         $items = $sale->items()->get();
 
-        $sale->total_price = $items->sum(function (Sale_item $it) {
-            return $it->item_type === 'ستارة'
-                ? (float) $it->sell_price
-                : (float) $it->sell_price * (float) $it->quantity;
-        });
+        $sale->total_price = $items->sum('sell_price');
 
-        $sale->total_cost = $items->sum('total_cost');
+
+        $sale->total_cost = $items->sum('total_cost') + $items->sum('extra_cost');
         $sale->profit = (float) $sale->total_price - (float) $sale->total_cost;
         $sale->saveQuietly();
     }

@@ -17,7 +17,8 @@ class Sale_item extends Model
         'profit',
         'net_profit',
         'sewing_cost',
-        'extra_cost'
+        'extra_cost',
+        'notes'
     ];
 
     public function sale()
