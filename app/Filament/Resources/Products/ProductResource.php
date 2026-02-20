@@ -23,6 +23,9 @@ class ProductResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    protected static \UnitEnum|string|null $navigationGroup = 'المخزون';
+    protected static ?int $navigationSort = 4;
+
     protected static ?string $pluralLabel='المنتجات';
     protected static ?string $modelLabel='منتج';
 

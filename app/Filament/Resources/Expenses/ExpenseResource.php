@@ -25,10 +25,11 @@ class ExpenseResource extends Resource
 {
     protected static ?string $model = Expense::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Banknotes;
     protected static ?string $modelLabel = "المصروفات";
     protected static ?string $pluralLabel = "المصروفات";
-    protected static ?int $navigationSort = 8;
+    protected static \UnitEnum|string|null $navigationGroup = 'المصروفات';
+    protected static ?int $navigationSort = 6;
 
     public static function form(Schema $schema): Schema
     {

@@ -11,6 +11,8 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Filament\Tables\Columns\Summarizers\Sum;
+
 
 class ProductsTable
 {
@@ -30,6 +32,7 @@ class ProductsTable
                 TextColumn::make('cost_price')
                     ->label('سعر التكلفة')
                     ->money("ILS")
+                    
                     ->sortable(),
                 TextColumn::make('sell_price')
                     ->money("ILS")
@@ -38,9 +41,23 @@ class ProductsTable
 
                 TextColumn::make('stock')
                     ->label('الكمية')
-
+                    ->summarize(
+                        Sum::make()
+                            ->label('المجموع')
+                            ->money('ILS', locale: 'en'))
                     ->numeric()
                     ->sortable(),
+    TextColumn::make('total_cost_virtual')
+    ->label('إجمالي التكلفة')
+    ->money('ILS')
+    
+    ->getStateUsing(fn ($record) => $record->cost_price * $record->stock)
+    ->summarize(
+        \Filament\Tables\Columns\Summarizers\Summarizer::make()
+            ->label('المجموع')
+            ->using(fn ($query) => $query->sum(\DB::raw('cost_price * stock')))
+            ->prefix('₪ ')
+    ),
                 TextColumn::make('deleted_at')
                     ->dateTime()
                     ->sortable()

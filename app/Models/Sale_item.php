@@ -31,9 +31,10 @@ class Sale_item extends Model
         return $this->belongsTo(Product::class);
     }
 
+    
     public function colors()
     {
-        return $this->belongsTo(productColor::class);
+        return $this->belongsTo(productColor::class, 'product_color_id');
     }
 
     public function curtainCosts()

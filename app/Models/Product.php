@@ -19,6 +19,12 @@ class Product extends Model
     ];
 
 
+protected $appends = ['total_cost'];
+
+public function getTotalCostAttribute()
+{
+    return $this->cost_price * $this->stock;
+}
     public function saleItems()
     {
         return $this->hasMany(Sale_item::class);

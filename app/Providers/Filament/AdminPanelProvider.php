@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\FinanceOverviewWidget;
 use App\Filament\Widgets\NetProfitAfterExpenses;
 use App\Filament\Widgets\SalesProfitChart;
 use App\Filament\Widgets\TotalExpenses;
@@ -9,7 +10,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
+use App\Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Assets\Css;
@@ -30,11 +31,12 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('/')
+            ->path('/admin')
             ->brandName("بيت الديكور للستائر والمفروشات")
             ->brandLogo(asset('images/logo.jpeg'))
             ->brandLogoHeight('120px')
             ->login()
+            ->globalSearch(false)
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -45,11 +47,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                // NetProfitAfterExpenses::class,
-                // TotalExpenses::class,
-                // SalesProfitChart::class,
-                // AccountWidget::class,
-                // FilamentInfoWidget::class,
+                FinanceOverviewWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

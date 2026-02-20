@@ -76,19 +76,25 @@ class SaleItemsRelationManager extends RelationManager
                     ->label('لون المنتج')
                     ->searchable()
                     ->preload()
-                    ->options(
-                        fn($get) =>
-                        $get('product_id')
-                            ? \App\Models\ProductColor::where('product_id', $get('product_id'))
-                            ->pluck('color', 'id')
-                            : []
-                    )
+                    ->options(function ($get) {
+                        $productId = $get('product_id');
+                        if (!$productId) {
+                            return [];
+                        }
+                        return productColor::where('product_id', $productId)
+                            ->get()
+                            ->mapWithKeys(fn(productColor $pc) => [
+                                $pc->id => $pc->color . ' (مخزون: ' . ($pc->stock ?? 0) . ')',
+                            ])
+                            ->all();
+                    })
                     ->visible(
                         fn($get) =>
                         $get('product_id') &&
-                            \App\Models\ProductColor::where('product_id', $get('product_id'))->exists()
+                            productColor::where('product_id', $get('product_id'))->exists()
                             && $get('item_type') === 'منتج عادي'
                     )
+                    ->required(fn($get) => $get('product_id') && productColor::where('product_id', $get('product_id'))->exists())
                     ->reactive(),
 
                 TextInput::make('quantity')
@@ -135,14 +141,22 @@ class SaleItemsRelationManager extends RelationManager
                             ->required(),
 
                         Select::make('product_color_id')
-                            ->label('اللون')
-                            ->options(
-                                fn($get) =>
-                                $get('product_id')
-                                    ? \App\Models\ProductColor::where('product_id', $get('product_id'))
-                                    ->pluck('color', 'id')
-                                    : []
-                            )
+                            ->label('لون المكون')
+                            ->options(function ($get) {
+                                $productId = $get('product_id');
+                                if (!$productId) {
+                                    return [];
+                                }
+                                return productColor::where('product_id', $productId)
+                                    ->get()
+                                    ->mapWithKeys(fn(productColor $pc) => [
+                                        $pc->id => $pc->color . ' (مخزون: ' . ($pc->stock ?? 0) . ')',
+                                    ])
+                                    ->all();
+                            })
+                            ->visible(fn($get) => $get('product_id') && productColor::where('product_id', $get('product_id'))->exists())
+                            ->required(fn($get) => $get('product_id') && productColor::where('product_id', $get('product_id'))->exists())
+                            ->searchable()
                             ->reactive(),
 
                         TextInput::make('quantity')
@@ -177,7 +191,22 @@ class SaleItemsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('id')->label('ID'),
                 TextColumn::make('item_type')->label('نوع العنصر')->badge(),
-                TextColumn::make('product.name')->label('المنتج'),
+                TextColumn::make('product.name')->label('المنتج')
+                    ->placeholder('—'),
+                TextColumn::make('color_display')->label('اللون')
+                    ->getStateUsing(function ($record) {
+                        if ($record->item_type === 'منتج عادي') {
+                            return $record->colors?->color ?? '—';
+                        }
+                        if ($record->item_type === 'ستارة') {
+                            $parts = $record->curtainCosts->map(function ($c) {
+                                $colorName = $c->productColor?->color ?? '—';
+                                return $c->product?->name . ': ' . $colorName . ' (×' . $c->quantity . ')';
+                            });
+                            return $parts->isEmpty() ? '—' : $parts->implode(' | ');
+                        }
+                        return '—';
+                    }),
                 TextColumn::make('quantity')->label('الكمية'),
                 TextColumn::make('sell_price')->label('سعر البيع'),
                 TextColumn::make('total_cost')->label('التكلفة'),

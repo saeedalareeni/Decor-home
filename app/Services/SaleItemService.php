@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Product;
 use App\Models\productColor;
 use App\Models\Sale_item;
-use App\Models\StockTransaction;
+
 use Illuminate\Support\Facades\DB;
 
 class SaleItemService
@@ -77,14 +77,7 @@ class SaleItemService
             delta: -(float) $item->quantity,
         );
 
-        StockTransaction::create([
-            'product_id' => (int) $item->product_id,
-            'product_color_id' => $item->product_color_id ? (int) $item->product_color_id : null,
-            'quantity' => (float) $item->quantity,
-            'type' => 'خارج',
-            'reference_type' => Sale_item::class,
-            'reference_id' => (int) $item->id,
-        ]);
+       
     }
 
     private function applyStockOnUpdate(Sale_item $item): void
@@ -127,23 +120,7 @@ class SaleItemService
             delta: -$currentQty,
         );
 
-        StockTransaction::query()
-            ->where('reference_type', Sale_item::class)
-            ->where('reference_id', (int) $item->id)
-            ->updateOrInsert(
-                [
-                    'reference_type' => Sale_item::class,
-                    'reference_id' => (int) $item->id,
-                ],
-                [
-                    'product_id' => $currentProductId,
-                    'product_color_id' => $currentProductColorId,
-                    'quantity' => $currentQty,
-                    'type' => 'خارج',
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
+      
     }
 
     private function applyStockOnDelete(Sale_item $item): void
@@ -158,10 +135,7 @@ class SaleItemService
             delta: +(float) $item->quantity,
         );
 
-        StockTransaction::query()
-            ->where('reference_type', Sale_item::class)
-            ->where('reference_id', (int) $item->id)
-            ->delete();
+        
     }
 
     private function applyStockDelta(int $productId, ?int $productColorId, float $delta): void

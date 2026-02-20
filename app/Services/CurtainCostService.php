@@ -6,7 +6,6 @@ use App\Models\curtainCost;
 use App\Models\Product;
 use App\Models\productColor;
 use App\Models\Sale_item;
-use App\Models\StockTransaction;
 use Illuminate\Support\Facades\DB;
 
 class CurtainCostService
@@ -74,14 +73,7 @@ class CurtainCostService
             delta: -(float) $cost->quantity,
         );
 
-        StockTransaction::create([
-            'product_id' => (int) $cost->product_id,
-            'product_color_id' => $cost->product_color_id ? (int) $cost->product_color_id : null,
-            'quantity' => (float) $cost->quantity,
-            'type' => 'خارج',
-            'reference_type' => curtainCost::class,
-            'reference_id' => (int) $cost->id,
-        ]);
+       
     }
 
     private function applyStockOnUpdate(curtainCost $cost): void
@@ -120,23 +112,7 @@ class CurtainCostService
             delta: -$currentQty,
         );
 
-        StockTransaction::query()
-            ->where('reference_type', curtainCost::class)
-            ->where('reference_id', (int) $cost->id)
-            ->updateOrInsert(
-                [
-                    'reference_type' => curtainCost::class,
-                    'reference_id' => (int) $cost->id,
-                ],
-                [
-                    'product_id' => $currentProductId,
-                    'product_color_id' => $currentProductColorId,
-                    'quantity' => $currentQty,
-                    'type' => 'خارج',
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
+       
     }
 
     private function applyStockOnDelete(curtainCost $cost): void
@@ -147,10 +123,7 @@ class CurtainCostService
             delta: +(float) $cost->quantity,
         );
 
-        StockTransaction::query()
-            ->where('reference_type', curtainCost::class)
-            ->where('reference_id', (int) $cost->id)
-            ->delete();
+       
     }
 
     private function applyStockDelta(int $productId, ?int $productColorId, float $delta): void

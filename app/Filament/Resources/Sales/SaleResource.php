@@ -23,6 +23,9 @@ class SaleResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::CurrencyDollar;
 
+    protected static \UnitEnum|string|null $navigationGroup = 'المبيعات';
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $recordTitleAttribute = 'Sale';
 
     public static function getPluralLabel(): ?string

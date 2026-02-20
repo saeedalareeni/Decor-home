@@ -22,4 +22,9 @@ class curtainCost extends Model
     {
         return $this->belongsTo(Product::class);
     }
+    
+    public function productColor()
+    {
+        return $this->belongsTo(productColor::class, 'product_color_id');
+    }
 }
