@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Sale_item extends Model
 {
@@ -21,20 +23,25 @@ class Sale_item extends Model
         'notes'
     ];
 
-    public function sale()
+    public function sale(): BelongsTo
     {
         return $this->belongsTo(Sale::class);
     }
 
-    public function product()
+    public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
-    
-    public function colors()
+    public function colors(): BelongsTo
     {
         return $this->belongsTo(productColor::class, 'product_color_id');
+    }
+
+    /** حركة المخزون المرتبطة بهذا البند (إخراج بضاعة من البيع) */
+    public function stockTransaction(): MorphOne
+    {
+        return $this->morphOne(StockTransaction::class, 'reference');
     }
 
     public function curtainCosts()

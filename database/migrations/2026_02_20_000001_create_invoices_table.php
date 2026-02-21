@@ -13,7 +13,6 @@ return new class extends Migration
             $table->string('supplier_name')->comment('اسم التاجر / المورد');
             $table->string('invoice_number')->nullable()->comment('رقم الفاتورة');
             $table->date('invoice_date')->comment('تاريخ الفاتورة');
-            $table->string('type')->default('بضاعة محل')->comment('بضاعة محل / إيرادات بضاعة');
             $table->decimal('total_amount', 12, 2)->default(0)->comment('المبلغ الإجمالي');
             $table->text('notes')->nullable();
             $table->timestamps();

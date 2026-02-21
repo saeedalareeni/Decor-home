@@ -2,9 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\Product;
-use App\Models\productColor;
 use App\Models\Sale_item;
+use App\Models\StockTransaction;
 
 use Illuminate\Support\Facades\DB;
 
@@ -67,17 +66,11 @@ class SaleItemService
 
     private function applyStockOnCreate(Sale_item $item): void
     {
-        if ($item->item_type === 'ستارة') {
+        if ($item->item_type === 'ستارة' || ! $item->product_id) {
             return;
         }
 
-        $this->applyStockDelta(
-            productId: (int) $item->product_id,
-            productColorId: $item->product_color_id ? (int) $item->product_color_id : null,
-            delta: -(float) $item->quantity,
-        );
-
-       
+        $this->createStockTransactionForSaleItem($item);
     }
 
     private function applyStockOnUpdate(Sale_item $item): void
@@ -86,41 +79,13 @@ class SaleItemService
             return;
         }
 
-        $originalProductId = (int) $item->getOriginal('product_id');
-        $originalProductColorId = $item->getOriginal('product_color_id');
-        $originalProductColorId = $originalProductColorId ? (int) $originalProductColorId : null;
-        $originalQty = (float) $item->getOriginal('quantity');
+        // دائماً نزامن حركة المخزون مع حالة البند الحالية (حذف القديمة ثم إنشاء جديدة)
+        // حتى لو واجهنا مشكلة في getOriginal() عند التعديل من Filament أو غيره
+        $item->stockTransaction?->delete();
 
-        $currentProductId = (int) $item->product_id;
-        $currentProductColorId = $item->product_color_id ? (int) $item->product_color_id : null;
-        $currentQty = (float) $item->quantity;
-
-        $stockChanged =
-            $originalProductId !== $currentProductId
-            || $originalProductColorId !== $currentProductColorId
-            || $originalQty !== $currentQty;
-
-        if (! $stockChanged) {
-            return;
+        if ($item->product_id) {
+            $this->createStockTransactionForSaleItem($item);
         }
-
-        // رجّع القديم للمخزون
-        if ($originalProductId) {
-            $this->applyStockDelta(
-                productId: $originalProductId,
-                productColorId: $originalProductColorId,
-                delta: +$originalQty,
-            );
-        }
-
-        // اخصم الجديد من المخزون
-        $this->applyStockDelta(
-            productId: $currentProductId,
-            productColorId: $currentProductColorId,
-            delta: -$currentQty,
-        );
-
-      
     }
 
     private function applyStockOnDelete(Sale_item $item): void
@@ -129,39 +94,20 @@ class SaleItemService
             return;
         }
 
-        $this->applyStockDelta(
-            productId: (int) $item->product_id,
-            productColorId: $item->product_color_id ? (int) $item->product_color_id : null,
-            delta: +(float) $item->quantity,
-        );
-
-        
+        $item->stockTransaction?->delete();
     }
 
-    private function applyStockDelta(int $productId, ?int $productColorId, float $delta): void
+    /** إنشاء حركة مخزون إخراج مرتبطة ببند البيع (وتحديث المخزون يتم تلقائياً من نموذج StockTransaction) */
+    private function createStockTransactionForSaleItem(Sale_item $item): void
     {
-        if ($productColorId) {
-            /** @var productColor|null $color */
-            $color = productColor::query()->lockForUpdate()->find($productColorId);
-            if ($color) {
-                // delta: + يرجع مخزون، - يخصم مخزون
-                $color->stock = (float) $color->stock + $delta;
-                $color->save();
-            }
-            return;
-        }
-
-        /** @var Product|null $product */
-        $product = Product::query()->lockForUpdate()->find($productId);
-        if (! $product) {
-            return;
-        }
-
-        if ($delta >= 0) {
-            $product->increment('stock', $delta);
-        } else {
-            $product->decrement('stock', abs($delta));
-        }
+        StockTransaction::create([
+            'product_id' => (int) $item->product_id,
+            'product_color_id' => $item->product_color_id ? (int) $item->product_color_id : null,
+            'quantity' => (float) $item->quantity,
+            'type' => StockTransaction::TYPE_OUT,
+            'reference_type' => Sale_item::class,
+            'reference_id' => $item->id,
+        ]);
     }
 
     private function updateSaleTotals(Sale_item $item): void

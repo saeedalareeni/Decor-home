@@ -5,11 +5,12 @@ namespace App\Providers;
 use App\Models\curtainCost;
 use App\Models\Purchase_item;
 use App\Models\Refund_item;
+use App\Models\Sale;
 use App\Models\Sale_item;
 use App\Observers\CurtainCostObserver;
 use App\Observers\Purchase_itemObserver;
 use App\Observers\Refund_itemObserver;
-use App\Observers\Sale_itemObserver;
+use App\Observers\SaleObserver;
 use App\Observers\SaleItemObserver;
 use Illuminate\Support\ServiceProvider;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
@@ -29,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Sale::observe(SaleObserver::class);
         Sale_item::observe(SaleItemObserver::class);
         curtainCost::observe(CurtainCostObserver::class);
         // Refund_item::observe(Refund_itemObserver::class);
