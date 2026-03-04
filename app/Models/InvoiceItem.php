@@ -58,6 +58,7 @@ class InvoiceItem extends Model
                     'quantity' => [$e->getMessage()],
                 ]);
             }
+            $item->invoice?->recalculateTotalFromItems();
         });
 
         static::updated(function (InvoiceItem $item) {
@@ -74,10 +75,17 @@ class InvoiceItem extends Model
                     'quantity' => [$e->getMessage()],
                 ]);
             }
+            if ($item->wasChanged(['quantity', 'unit_price', 'product_id', 'product_color_id'])) {
+                $item->invoice?->recalculateTotalFromItems();
+            }
         });
 
         static::deleting(function (InvoiceItem $item) {
             $item->stockTransaction?->delete();
+        });
+
+        static::deleted(function (InvoiceItem $item) {
+            Invoice::find($item->invoice_id)?->recalculateTotalFromItems();
         });
     }
 

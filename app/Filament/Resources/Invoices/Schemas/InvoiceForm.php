@@ -26,10 +26,11 @@ class InvoiceForm
                     ->default(now()),
                 TextInput::make('total_amount')
                     ->label('المبلغ الإجمالي للفاتورة')
+                    ->helperText('يُحسب تلقائياً من مجموع البنود (كمية × سعر الوحدة)')
                     ->numeric()
-                    ->required()
                     ->default(0)
-                    ->minValue(0),
+                    ->disabled()
+                    ->dehydrated(true),
                 Textarea::make('notes')
                     ->label('ملاحظات')
                     ->rows(3),

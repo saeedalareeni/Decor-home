@@ -10,9 +10,12 @@ class EditInvoice extends EditRecord
 {
     protected static string $resource = InvoiceResource::class;
 
-    protected function afterSave(): void
+    protected function mutateFormDataBeforeSave(array $data): array
     {
-        $this->record->recalculateTotal();
+        $data['total_amount'] = (float) $this->record->items()->get()->sum(
+            fn ($item) => (float) $item->quantity * (float) $item->unit_price
+        );
+        return $data;
     }
 
     protected function getHeaderActions(): array
