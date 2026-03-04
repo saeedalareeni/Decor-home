@@ -45,7 +45,17 @@ class CurtainCostService
         });
     }
 
-    /** استهلاك من الدفعة لكل مكوّن ستارة (FIFO) وحفظ الدفعة والتكلفة على الـ cost */
+    /**
+     * عند حذف بند البيع (ستارة) يُحذف الـ cascade بنود curtain_costs من DB دون تشغيل observer.
+     * يُستدعى من SaleItemService::onDeleting لتنظيف حركة المخزون وإرجاع الدفعة قبل الحذف.
+     */
+    public function cleanupCurtainCostOnParentDelete(curtainCost $cost): void
+    {
+        $this->returnBatchOnCurtainCostDelete($cost);
+        $cost->stockTransaction?->delete();
+    }
+
+    /** استهلاك من الدفعة لكل مكوّن ستارة (FIFO أو الدفعة المختارة) وحفظ الدفعة والتكلفة على الـ cost */
     private function consumeBatchForCurtainCost(curtainCost $cost): void
     {
         try {
@@ -53,7 +63,7 @@ class CurtainCostService
                 (int) $cost->product_id,
                 $cost->product_color_id ? (int) $cost->product_color_id : null,
                 (float) $cost->quantity,
-                null
+                $cost->inventory_batch_id ? (int) $cost->inventory_batch_id : null
             );
             $cost->inventory_batch_id = $result['inventory_batch_id'];
             $cost->consumed_cost = $result['total_cost'];

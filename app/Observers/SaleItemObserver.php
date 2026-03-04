@@ -17,6 +17,11 @@ class SaleItemObserver
         app(SaleItemService::class)->onUpdated($item);
     }
 
+    public function deleting(Sale_item $item)
+    {
+        app(SaleItemService::class)->onDeleting($item);
+    }
+
     public function deleted(Sale_item $item)
     {
         app(SaleItemService::class)->onDeleted($item);

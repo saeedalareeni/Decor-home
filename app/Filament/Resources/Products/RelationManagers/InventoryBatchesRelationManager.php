@@ -30,6 +30,11 @@ class InventoryBatchesRelationManager extends RelationManager
                     ->money('ILS')
                     ->sortable(),
 
+                TextColumn::make('productColor.color')
+                    ->label('لون المنتج')
+                    ->placeholder('—')
+                    ->sortable(),
+
                 TextColumn::make('quantity_in')
                     ->label('الكمية الواردة')
                     ->numeric(decimalPlaces: 2)
@@ -40,6 +45,16 @@ class InventoryBatchesRelationManager extends RelationManager
                     ->numeric(decimalPlaces: 2)
                     ->sortable()
                     ->color(fn ($record) => (float) $record->quantity_remaining > 0 ? 'success' : 'danger'),
+
+                TextColumn::make('supplier_display')
+                    ->label('اسم المورد')
+                    ->getStateUsing(function ($record) {
+                        if ($record->invoiceItem?->invoice?->supplier_name) {
+                            return $record->invoiceItem->invoice->supplier_name;
+                        }
+                        return $record->product?->supplier_name ?? '—';
+                    })
+                    ->placeholder('—'),
 
                 TextColumn::make('invoice_item_id')
                     ->label('رقم الفاتورة')

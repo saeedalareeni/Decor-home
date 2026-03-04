@@ -35,6 +35,20 @@ class SaleItemService
         });
     }
 
+    /** يُستدعى قبل الحذف (deleting) — لتنظيف مكوّنات الستارة قبل أن يحذف الـ cascade بنود curtain_costs */
+    public function onDeleting(Sale_item $item): void
+    {
+        if ($item->item_type !== 'ستارة') {
+            return;
+        }
+        DB::transaction(function () use ($item) {
+            $item->loadMissing('curtainCosts');
+            foreach ($item->curtainCosts as $cost) {
+                $this->curtainCostService->cleanupCurtainCostOnParentDelete($cost);
+            }
+        });
+    }
+
     public function onDeleted(Sale_item $item): void
     {
         DB::transaction(function () use ($item) {

@@ -71,7 +71,7 @@ class SaleItemsRelationManager extends RelationManager
                     ->options(
                         Product::all()
                             ->mapWithKeys(fn(Product $p) => [
-                                $p->id => $p->name . ' (مخزون: ' . ($p->stock ?? 0) . ' | سعر الجمله: ' . ($p->cost_price ?? 0) . ')',
+                                $p->id => $p->name . ' (مخزون: ' . $this->getAvailableStockForDisplay($p->id, null) . ' | سعر الجمله: ' . ($p->cost_price ?? 0) . ')',
                             ])
                             ->all()
                     )
@@ -96,7 +96,7 @@ class SaleItemsRelationManager extends RelationManager
                         return productColor::where('product_id', $productId)
                             ->get()
                             ->mapWithKeys(fn(productColor $pc) => [
-                                $pc->id => $pc->color . ' (مخزون: ' . ($pc->stock ?? 0) . ')',
+                                $pc->id => $pc->color . ' (مخزون: ' . $this->getAvailableStockForDisplay($productId, $pc->id) . ')',
                             ])
                             ->all();
                     })
@@ -181,7 +181,10 @@ class SaleItemsRelationManager extends RelationManager
                                     ->all()
                             )
                             ->reactive()
-                            ->afterStateUpdated(fn($set) => $set('product_color_id', null))
+                            ->afterStateUpdated(function ($set) {
+                                $set('product_color_id', null);
+                                $set('inventory_batch_id', null);
+                            })
                             ->searchable()
                             ->required(),
 
@@ -202,7 +205,35 @@ class SaleItemsRelationManager extends RelationManager
                             ->visible(fn($get) => $get('product_id') && productColor::where('product_id', $get('product_id'))->exists())
                             ->required(fn($get) => $get('product_id') && productColor::where('product_id', $get('product_id'))->exists())
                             ->searchable()
-                            ->reactive(),
+                            ->reactive()
+                            ->afterStateUpdated(fn ($set) => $set('inventory_batch_id', null)),
+
+                        Select::make('inventory_batch_id')
+                            ->label('دفعة الجملة / سعر الشراء')
+                            ->options(function ($get) {
+                                $productId = $get('product_id');
+                                $colorId = $get('product_color_id');
+                                if (!$productId) {
+                                    return [];
+                                }
+                                $query = InventoryBatch::query()
+                                    ->where('product_id', $productId)
+                                    ->where('quantity_remaining', '>', 0);
+                                if ($colorId) {
+                                    $query->where('product_color_id', $colorId);
+                                } else {
+                                    $query->whereNull('product_color_id');
+                                }
+                                return $query->orderBy('received_at')->orderBy('id')
+                                    ->get()
+                                    ->mapWithKeys(fn (InventoryBatch $b) => [
+                                        $b->id => $b->batch_label,
+                                    ])
+                                    ->all();
+                            })
+                            ->searchable()
+                            ->placeholder('أول وارد أول صادر (FIFO)')
+                            ->visible(fn ($get) => (bool) $get('product_id')),
 
                         TextInput::make('quantity')
                             ->label('الكمية')
@@ -328,6 +359,12 @@ class SaleItemsRelationManager extends RelationManager
                 }
             }
         }
+    }
+
+    /** نفس منطق getAvailableStock لكن للعرض في القوائم (مجموع الدفعات إن وُجد، وإلا مخزون المنتج/اللون) */
+    private function getAvailableStockForDisplay(int $productId, ?int $productColorId): string
+    {
+        return number_format($this->getAvailableStock($productId, $productColorId), 2);
     }
 
     private function getAvailableStock(int $productId, ?int $productColorId): float
