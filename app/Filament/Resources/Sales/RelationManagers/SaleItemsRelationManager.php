@@ -2,9 +2,11 @@
 
 namespace App\Filament\Resources\Sales\RelationManagers;
 
+use App\Models\InventoryBatch;
 use App\Models\Product;
 use App\Models\productColor;
 use Filament\Actions\AssociateAction;
+use Filament\Notifications\Notification;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -27,6 +29,7 @@ use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SaleItemsRelationManager extends RelationManager
 {
@@ -65,11 +68,20 @@ class SaleItemsRelationManager extends RelationManager
 
                 Select::make('product_id')
                     ->label('المنتج')
-                    ->options(Product::pluck('name', 'id'))
+                    ->options(
+                        Product::all()
+                            ->mapWithKeys(fn(Product $p) => [
+                                $p->id => $p->name . ' (مخزون: ' . ($p->stock ?? 0) . ' | سعر الجمله: ' . ($p->cost_price ?? 0) . ')',
+                            ])
+                            ->all()
+                    )
                     ->searchable()
                     ->preload()
                     ->reactive()
-                    ->afterStateUpdated(fn($set) => $set('product_color_id', null))
+                    ->afterStateUpdated(function ($set) {
+                        $set('product_color_id', null);
+                        $set('inventory_batch_id', null);
+                    })
                     ->visible(fn($get) => $get('item_type') === 'منتج عادي'),
 
                 Select::make('product_color_id')
@@ -95,6 +107,35 @@ class SaleItemsRelationManager extends RelationManager
                             && $get('item_type') === 'منتج عادي'
                     )
                     ->required(fn($get) => $get('product_id') && productColor::where('product_id', $get('product_id'))->exists())
+                    ->reactive()
+                    ->afterStateUpdated(fn ($set) => $set('inventory_batch_id', null)),
+
+                Select::make('inventory_batch_id')
+                    ->label('دفعة الجملة / سعر الشراء')
+                    ->options(function ($get) {
+                        $productId = $get('product_id');
+                        $colorId = $get('product_color_id');
+                        if (!$productId) {
+                            return [];
+                        }
+                        $query = InventoryBatch::query()
+                            ->where('product_id', $productId)
+                            ->where('quantity_remaining', '>', 0);
+                        if ($colorId) {
+                            $query->where('product_color_id', $colorId);
+                        } else {
+                            $query->whereNull('product_color_id');
+                        }
+                        return $query->orderBy('received_at')->orderBy('id')
+                            ->get()
+                            ->mapWithKeys(fn (InventoryBatch $b) => [
+                                $b->id => $b->batch_label,
+                            ])
+                            ->all();
+                    })
+                    ->searchable()
+                    ->placeholder('أول وارد أول صادر (FIFO)')
+                    ->visible(fn ($get) => $get('item_type') === 'منتج عادي' && $get('product_id'))
                     ->reactive(),
 
                 TextInput::make('quantity')
@@ -133,7 +174,11 @@ class SaleItemsRelationManager extends RelationManager
                             ->label('المكون')
                             ->options(
                                 Product::whereIn('type', ['ستائر', 'شيفون', 'بطانة', 'حلق', 'حديد', 'مفروشات'])
-                                    ->pluck('name', 'id')
+                                    ->get()
+                                    ->mapWithKeys(fn(Product $p) => [
+                                        $p->id => $p->name . ' (مخزون: ' . ($p->stock ?? 0) . ' | سعر الجمله: ' . ($p->cost_price ?? 0) . ')',
+                                    ])
+                                    ->all()
                             )
                             ->reactive()
                             ->afterStateUpdated(fn($set) => $set('product_color_id', null))
@@ -223,10 +268,18 @@ class SaleItemsRelationManager extends RelationManager
                     ),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->mutateDataUsing(function (array $data): array {
+                        $this->validateSaleItemStock($data, null);
+                        return $data;
+                    }),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->mutateDataUsing(function (array $data, \Illuminate\Database\Eloquent\Model $record): array {
+                        $this->validateSaleItemStock($data, $record);
+                        return $data;
+                    }),
                 // DissociateAction::make(),
                 DeleteAction::make(),
             ])
@@ -235,5 +288,70 @@ class SaleItemsRelationManager extends RelationManager
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    private function validateSaleItemStock(array $data, $record): void
+    {
+        if (($data['item_type'] ?? '') === 'منتج عادي' && ! empty($data['product_id'])) {
+            $productId = (int) $data['product_id'];
+            $colorId = isset($data['product_color_id']) ? (int) $data['product_color_id'] : null;
+            $available = $this->getAvailableStock($productId, $colorId);
+            if ($record && $record->product_id == $productId && $record->product_color_id == $colorId) {
+                $available += (float) $record->quantity;
+            }
+            $needed = (float) ($data['quantity'] ?? 0);
+            if ($available < $needed) {
+                $msg = "المخزون غير كافٍ. المتاح: " . round($available, 2) . "، المطلوب: {$needed}";
+                Notification::make()->danger()->title($msg)->persistent()->send();
+                throw ValidationException::withMessages(['quantity' => [$msg]]);
+            }
+        }
+
+        if (($data['item_type'] ?? '') === 'ستارة' && ! empty($data['curtainCosts'])) {
+            $existingIds = $record?->curtainCosts?->keyBy('id') ?? collect();
+            foreach ($data['curtainCosts'] as $i => $cost) {
+                $productId = (int) ($cost['product_id'] ?? 0);
+                $colorId = isset($cost['product_color_id']) ? (int) $cost['product_color_id'] : null;
+                $qty = (float) ($cost['quantity'] ?? 0);
+                $available = $this->getAvailableStock($productId, $colorId);
+                $existing = $cost['id'] ?? null;
+                if ($existing && $existingCost = $existingIds->get($existing)) {
+                    if ($existingCost->product_id == $productId && $existingCost->product_color_id == $colorId) {
+                        $available += (float) $existingCost->quantity;
+                    }
+                }
+                if ($available < $qty) {
+                    $productName = Product::find($productId)?->name ?? 'المنتج';
+                    $msg = "المخزون غير كافٍ للمكوّن ({$productName}). المتاح: " . round($available, 2) . "، المطلوب: {$qty}";
+                    Notification::make()->danger()->title($msg)->persistent()->send();
+                    throw ValidationException::withMessages(["curtainCosts.{$i}.quantity" => [$msg]]);
+                }
+            }
+        }
+    }
+
+    private function getAvailableStock(int $productId, ?int $productColorId): float
+    {
+        if (! $productId) {
+            return 0;
+        }
+        $batchTotal = InventoryBatch::query()
+            ->where('product_id', $productId)
+            ->where('quantity_remaining', '>', 0);
+        if ($productColorId) {
+            $batchTotal->where('product_color_id', $productColorId);
+        } else {
+            $batchTotal->whereNull('product_color_id');
+        }
+        $fromBatches = (float) $batchTotal->sum('quantity_remaining');
+        if ($fromBatches > 0) {
+            return $fromBatches;
+        }
+        if ($productColorId) {
+            $color = productColor::find($productColorId);
+            return (float) ($color->stock ?? 0);
+        }
+        $product = Product::find($productId);
+        return (float) ($product->stock ?? 0);
     }
 }

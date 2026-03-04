@@ -25,9 +25,9 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
+    /** المبلغ الإجمالي يُدخله المستخدم في الفاتورة، لا يُحسب من البنود */
     public function recalculateTotal(): void
     {
-        $this->total_amount = $this->items()->get()->sum(fn (InvoiceItem $item) => (float) $item->quantity * (float) $item->unit_price);
-        $this->save();
+        // لا نعدّل total_amount — يُدخل من نموذج الفاتورة فقط
     }
 }

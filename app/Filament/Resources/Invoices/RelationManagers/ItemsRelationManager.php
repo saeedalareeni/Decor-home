@@ -31,7 +31,15 @@ class ItemsRelationManager extends RelationManager
                     ->searchable()
                     ->preload()
                     ->live()
-                    ->afterStateUpdated(fn ($set) => $set('product_color_id', null)),
+                    ->afterStateUpdated(function ($state, $set) {
+                        if ($state) {
+                            $product = Product::find($state);
+                            if ($product && $product->cost_price > 0) {
+                                $set('unit_price', $product->cost_price);
+                            }
+                        }
+                        $set('product_color_id', null);
+                    }),
 
                 Select::make('product_color_id')
                     ->label('لون المنتج')
@@ -54,22 +62,14 @@ class ItemsRelationManager extends RelationManager
                     ->minValue(0.001)
                     ->default(1),
 
-                TextInput::make('line_total')
-                    ->label('المبلغ الإجمالي للبند')
-                    ->required()
+                TextInput::make('unit_price')
+                    ->label('سعر الوحدة (شيكل)')
+                    ->required(fn ($get) => (bool) $get('product_id'))
                     ->numeric()
                     ->minValue(0)
-                    ->helperText('أدخل إجمالي المبلغ لهذا المنتج في الفاتورة'),
+                    ->default(0)
+                    ->prefix('₪'),
             ]);
-    }
-
-    protected static function lineTotalToUnitPrice(array $data): array
-    {
-        $qty = (float) ($data['quantity'] ?? 1);
-        $total = (float) ($data['line_total'] ?? 0);
-        $data['unit_price'] = $qty > 0 ? round($total / $qty, 2) : 0;
-        unset($data['line_total']);
-        return $data;
     }
 
     public function table(Table $table): Table
@@ -81,27 +81,20 @@ class ItemsRelationManager extends RelationManager
                 TextColumn::make('quantity')
                     ->label('الكمية')
                     ->numeric(decimalPlaces: 2),
-               
-                TextColumn::make('line_total')
+                TextColumn::make('total')
                     ->label('الإجمالي')
-                    ->money('ILS'),
+                    ->getStateUsing(fn ($record) => number_format($record->quantity * $record->unit_price, 2) . ' ₪'),
             ])
             ->headerActions([
-                CreateAction::make()
-                    ->mutateDataUsing(fn (array $data) => self::lineTotalToUnitPrice($data))
-                    ->after(fn () => $this->getOwnerRecord()->recalculateTotal()),
+                CreateAction::make(),
             ])
             ->recordActions([
-                EditAction::make()
-                    ->mutateDataUsing(fn (array $data) => self::lineTotalToUnitPrice($data))
-                    ->after(fn () => $this->getOwnerRecord()->recalculateTotal()),
-                DeleteAction::make()
-                    ->after(fn () => $this->getOwnerRecord()->recalculateTotal()),
+                EditAction::make(),
+                DeleteAction::make(),
             ])
             ->bulkActions([
                 \Filament\Actions\BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->after(fn () => $this->getOwnerRecord()->recalculateTotal()),
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

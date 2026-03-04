@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\InventoryBatch;
+use App\Services\InventoryService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
@@ -49,12 +51,28 @@ class InvoiceItem extends Model
     {
         static::created(function (InvoiceItem $item) {
             $item->syncStockTransaction();
+            try {
+                $item->syncInventoryBatch();
+            } catch (\InvalidArgumentException $e) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'quantity' => [$e->getMessage()],
+                ]);
+            }
         });
 
         static::updated(function (InvoiceItem $item) {
-            if ($item->wasChanged(['product_id', 'product_color_id', 'quantity'])) {
-                $item->stockTransaction?->delete();
-                $item->syncStockTransaction();
+            try {
+                if ($item->wasChanged(['product_id', 'product_color_id', 'quantity'])) {
+                    $item->stockTransaction?->delete();
+                    $item->syncStockTransaction();
+                    $item->syncInventoryBatch();
+                } elseif ($item->wasChanged('unit_price')) {
+                    $item->syncInventoryBatch();
+                }
+            } catch (\InvalidArgumentException $e) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'quantity' => [$e->getMessage()],
+                ]);
             }
         });
 
@@ -77,6 +95,66 @@ class InvoiceItem extends Model
             'reference_type' => self::class,
             'reference_id' => $this->id,
         ]);
+    }
+
+    /** إنشاء أو تحديث دفعة مخزون للبند (سعر الجملة) عند الإدخال من الفاتورة */
+    protected function syncInventoryBatch(): void
+    {
+        if (! $this->product_id) {
+            return;
+        }
+        $receivedAt = $this->invoice?->invoice_date ?? now();
+        $quantity = (float) $this->quantity;
+        $batch = InventoryBatch::where('invoice_item_id', $this->id)->first();
+
+        if ($batch) {
+            $oldIn = (float) $batch->quantity_in;
+            $oldRemaining = (float) $batch->quantity_remaining;
+            $delta = $quantity - $oldIn;
+            $newRemaining = $oldRemaining + $delta;
+
+            // إذا الدفعة اتباعت منها جزء (quantity_remaining < quantity_in): لا نعدّل cost_price، فقط الكمية بالفرق
+            $hasPartialSales = $oldRemaining < $oldIn;
+
+            if ($hasPartialSales) {
+                if ($newRemaining < 0) {
+                    throw new \InvalidArgumentException(
+                        'لا يمكن تخفيض كمية البند إلى أقل من الكمية المباعة من هذه الدفعة. المتبقي حالياً: ' . $oldRemaining
+                    );
+                }
+                if ($newRemaining > $quantity) {
+                    $newRemaining = $quantity;
+                }
+                $batch->update([
+                    'quantity_in' => $quantity,
+                    'quantity_remaining' => $newRemaining,
+                    'received_at' => $receivedAt,
+                ]);
+            } else {
+                $costPrice = (float) $this->unit_price > 0
+                    ? (float) $this->unit_price
+                    : (float) ($this->product?->cost_price ?? 0);
+                $batch->update([
+                    'cost_price' => $costPrice,
+                    'quantity_in' => $quantity,
+                    'quantity_remaining' => max(0, $oldRemaining + $delta),
+                    'received_at' => $receivedAt,
+                ]);
+            }
+        } else {
+            $costPrice = (float) $this->unit_price > 0
+                ? (float) $this->unit_price
+                : (float) ($this->product?->cost_price ?? 0);
+            app(InventoryService::class)->addBatch(
+                (int) $this->product_id,
+                $this->product_color_id ? (int) $this->product_color_id : null,
+                $quantity,
+                $costPrice,
+                (int) $this->id,
+                $receivedAt,
+                null
+            );
+        }
     }
 
     public function getLineTotalAttribute(): float

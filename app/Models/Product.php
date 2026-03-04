@@ -45,6 +45,11 @@ public function getTotalCostAttribute()
         return $this->hasMany(productColor::class);
     }
 
+    public function inventoryBatches()
+    {
+        return $this->hasMany(InventoryBatch::class);
+    }
+
     // public function recipe()
     // {
     //     return $this->hasMany(CurtainRecipe::class, 'curtain_product_id');

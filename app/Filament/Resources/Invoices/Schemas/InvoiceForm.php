@@ -25,11 +25,11 @@ class InvoiceForm
                     ->required()
                     ->default(now()),
                 TextInput::make('total_amount')
-                    ->label('المبلغ الإجمالي')
+                    ->label('المبلغ الإجمالي للفاتورة')
                     ->numeric()
+                    ->required()
                     ->default(0)
-                    ->disabled()
-                    ->dehydrated(false),
+                    ->minValue(0),
                 Textarea::make('notes')
                     ->label('ملاحظات')
                     ->rows(3),
